@@ -1,5 +1,6 @@
 package com.study.springsecurity.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,25 +10,25 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
     @PreAuthorize("hasAuthority('admin:read')")
     @GetMapping
-    public String get() {
-        return "admin:get";
+    public ResponseEntity<String> get() {
+        return ResponseEntity.ok("admin:get");
     }
 
     @PreAuthorize("hasAuthority('admin:create')")
     @PostMapping
-    public String post() {
-        return "admin:post";
+    public ResponseEntity<String> post() {
+        return ResponseEntity.ok("admin:post");
     }
 
     @PreAuthorize("hasAuthority('admin:delete')")
     @DeleteMapping
-    public String delete() {
-        return "admin:delete";
+    public ResponseEntity<String> delete() {
+        return ResponseEntity.ok("admin:delete");
     }
 
     @PreAuthorize("hasAuthority('admin:update')")
     @PutMapping
-    public String put() {
-        return "admin:put";
+    public ResponseEntity<String> put() {
+        return ResponseEntity.ok("admin:put");
     }
 }

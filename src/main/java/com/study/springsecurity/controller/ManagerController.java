@@ -1,27 +1,28 @@
 package com.study.springsecurity.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/manager")
 public class ManagerController {
     @GetMapping
-    public String get() {
-        return "manager:get";
+    public ResponseEntity<String> get() {
+        return ResponseEntity.ok("manager:get");
     }
 
     @PostMapping
-    public String post() {
-        return "manager:post";
+    public ResponseEntity<String> post() {
+        return ResponseEntity.ok("manager:post");
     }
 
     @DeleteMapping
-    public String delete() {
-        return "manager:delete";
+    public ResponseEntity<String> delete() {
+        return ResponseEntity.ok("manager:delete");
     }
 
     @PutMapping
-    public String put() {
-        return "manager:put";
+    public ResponseEntity<String> put() {
+        return ResponseEntity.ok("manager:put");
     }
 }

@@ -1,5 +1,6 @@
 package com.study.springsecurity.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                                 .requestMatchers("/api/v1/auth/**").permitAll()
+                                .requestMatchers("/oauth2/**").authenticated()
 
 //                        .requestMatchers("/api/v1/manager/**").hasAnyRole(ADMIN, MANAGER)
 //                        .requestMatchers("/api/v1/admin/**").hasRole(ADMIN)
@@ -58,13 +60,25 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(authenticationProvider)
+
+                .oauth2Login(oauth2 -> oauth2
+                                .defaultSuccessUrl("/api/v1/auth/success", true)
+                                .failureUrl("/api/v1/auth/failure")
+                )
+
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")
                         .addLogoutHandler(logoutHandler)
                         .logoutSuccessHandler(((request, response, authentication) ->
                                         SecurityContextHolder.clearContext()
                                 )
-                        ));
+                        ))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"Unauthorized\"}");
+                        }));
 
         return http.build();
     }
