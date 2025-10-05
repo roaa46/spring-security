@@ -2,6 +2,7 @@ package com.study.springsecurity;
 
 import com.study.springsecurity.dto.RegisterRequest;
 import com.study.springsecurity.service.AuthenticationService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,19 +27,20 @@ public class SpringSecurityApplication {
                     .firstName("Super")
                     .lastName("Admin")
                     .email("superadmin@mail.com")
-                    .password("password123")
+                    .password("Password@123")
                     .role(ADMIN)
                     .build();
-            System.out.println("Admin token: " + authenticationService.register(admin).getAccessToken());
+            System.out.println("Admin token: " + authenticationService.register(admin, null).getAccessToken());
+
 
             var manager = RegisterRequest.builder()
                     .firstName("Super")
                     .lastName("Manager")
                     .email("supermanager@mail.com")
-                    .password("password123")
+                    .password("Password@123")
                     .role(MANAGER)
                     .build();
-            System.out.println("Manager token: " + authenticationService.register(manager).getAccessToken());
+            System.out.println("Manager token: " + authenticationService.register(manager, null).getAccessToken());
 
         };
     }

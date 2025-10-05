@@ -4,6 +4,7 @@ import com.study.springsecurity.repository.TokenRepository;
 import com.study.springsecurity.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -31,13 +32,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+        String jwtToken = null;
         final String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwtToken = authHeader.substring(7);
+        } else if (request.getCookies() != null && jwtToken == null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    jwtToken = cookie.getValue();
+                }
+            }
+        }
+
+        if (jwtToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        String jwtToken = authHeader.substring(7);
+
         String userEmail = jwtService.extractUserEmail(jwtToken);
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             // user is not connected yet

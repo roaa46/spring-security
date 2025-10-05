@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.springsecurity.dto.AuthenticationRequest;
 import com.study.springsecurity.dto.AuthenticationResponse;
 import com.study.springsecurity.dto.RegisterRequest;
-import com.study.springsecurity.entity.Token;
 import com.study.springsecurity.entity.User;
-import com.study.springsecurity.enums.TokenType;
-import com.study.springsecurity.repository.TokenRepository;
 import com.study.springsecurity.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,28 +25,32 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final TokenRepository tokenRepository;
+    private final TokenService tokenService;
 
-    public AuthenticationResponse register(RegisterRequest request) {
+    public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
+                .oauth2User(false)
                 .build();
         User savedUser = userRepository.save(user);
         String jwtToken = jwtService.generateToken(user);
         String refreshJwtToken = jwtService.generateRefreshToken(user);
-        revokeAllUserTokens(savedUser);
-        saveUserToken(savedUser, jwtToken);
+        tokenService.revokeAllUserTokens(savedUser);
+        tokenService.saveUserToken(savedUser, jwtToken);
+
+        tokenService.addTokenCookies(response, jwtToken, refreshJwtToken);
+
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshJwtToken)
                 .build();
     }
 
-    public AuthenticationResponse login(AuthenticationRequest request) {
+    public AuthenticationResponse login(AuthenticationRequest request, HttpServletResponse response) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
@@ -58,8 +58,11 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UsernameNotFoundException("user not found"));
         String jwtToken = jwtService.generateToken(user);
         String refreshJwtToken = jwtService.generateRefreshToken(user);
-        revokeAllUserTokens(user);
-        saveUserToken(user, jwtToken);
+        tokenService.revokeAllUserTokens(user);
+        tokenService.saveUserToken(user, jwtToken);
+
+        tokenService.addTokenCookies(response, jwtToken, refreshJwtToken);
+
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshJwtToken)
@@ -79,8 +82,10 @@ public class AuthenticationService {
                     .orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
                 String accessToken = jwtService.generateToken(user);
-                revokeAllUserTokens(user);
-                saveUserToken(user, accessToken);
+                tokenService.revokeAllUserTokens(user);
+                tokenService.saveUserToken(user, accessToken);
+
+                tokenService.addTokenCookies(response, accessToken, refreshToken);
                 AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
@@ -88,29 +93,5 @@ public class AuthenticationService {
                 new ObjectMapper().writeValue(response.getOutputStream(), authenticationResponse);
             }
         }
-    }
-
-    private void revokeAllUserTokens(User user) {
-        List<Token> validUserTokens = tokenRepository.findAllValidTokens(user.getId());
-        if (validUserTokens.isEmpty())
-            return;
-
-        validUserTokens.forEach(t -> {
-            t.setExpired(true);
-            t.setRevoked(true);
-        });
-
-        tokenRepository.saveAll(validUserTokens);
-    }
-
-    private void saveUserToken(User savedUser, String refreshToken) {
-        Token token = Token.builder()
-                .user(savedUser)
-                .token(refreshToken)
-                .tokenType(TokenType.BEARER)
-                .isExpired(false)
-                .isRevoked(false)
-                .build();
-        tokenRepository.save(token);
     }
 }

@@ -5,10 +5,7 @@ import com.study.springsecurity.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 
@@ -22,5 +19,10 @@ public class UserController {
     public ResponseEntity<?> changePassword(@Valid @RequestBody changePasswordRequest request, Principal connectedUser) {
         userService.changePassword(request, connectedUser);
         return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<String > get() {
+        return ResponseEntity.ok("Hello User!");
     }
 }

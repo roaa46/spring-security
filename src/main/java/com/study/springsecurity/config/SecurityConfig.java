@@ -1,5 +1,6 @@
 package com.study.springsecurity.config;
 
+import com.study.springsecurity.oauth2.OAuth2SuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -15,10 +16,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import static com.study.springsecurity.enums.Permission.*;
-import static com.study.springsecurity.enums.Role.ADMIN;
-import static com.study.springsecurity.enums.Role.MANAGER;
+import static com.study.springsecurity.enums.Role.*;
 
 @Configuration
 @EnableWebSecurity
@@ -29,6 +32,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final DaoAuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -54,6 +58,9 @@ public class SecurityConfig {
 //                                .requestMatchers(HttpMethod.DELETE,"/api/v1/admin/**").hasAuthority(ADMIN_DELETE.name())
 //                                .requestMatchers(HttpMethod.PUT,"/api/v1/admin/**").hasAuthority(ADMIN_UPDATE.name())
 
+                                .requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole(USER.name())
+                                .requestMatchers(HttpMethod.PATCH, "/api/v1/users").authenticated()
+
                                 .anyRequest().authenticated()
                 )
                 .userDetailsService(userDetailsService)
@@ -62,8 +69,8 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider)
 
                 .oauth2Login(oauth2 -> oauth2
-                                .defaultSuccessUrl("/api/v1/auth/success", true)
-                                .failureUrl("/api/v1/auth/failure")
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureUrl("/api/v1/auth/failure")
                 )
 
                 .logout(logout -> logout
@@ -81,5 +88,18 @@ public class SecurityConfig {
                         }));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsFilter corsFilter() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOriginPattern("http://localhost:3000");
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+        config.addExposedHeader("Authorization");
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
     }
 }
